@@ -1,23 +1,19 @@
-sample_txt = "Exac^^te*ch!!!,Humeral,Li#ner$s,Pr%ojec()t"
-print(sample_txt)
+from openpyxl.styles import Font
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl import load_workbook
 
-def processIRRS(txt):
-    
-    # These would be the collection of incorrectly displayed symbols
-    # In the future the real symbols will come from a table
-    wrong_GDT_symbols = "!#$%^&*()"
-    
-    for symbol in wrong_GDT_symbols:
-        # This is a proof of concept where I am replacing each
-        # wrong symbol with nothing, basically removing them
-        # in the future they will be replaced by the correct symbol
-        txt = txt.replace(symbol, '')
-    # Replacing all the commas with empty spaces for demonstration
-    txt = txt.replace(',', ' ')
-    print(txt)
+path = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example.xlsx"
+path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example_changed.xlsx"
 
-processIRRS(sample_txt)
+wb = load_workbook(path)
+ws = wb.active
+cell = ws.cell(row = 1, column = 1)
+print(cell.value)
 
+ws['A1'].font = Font(name= 'Y14.5-2009')
+
+wb.save(path2)
 # TODO:
     # [] add a function to read an excel table with the codes
     #   translation
