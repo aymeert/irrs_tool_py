@@ -12,7 +12,6 @@ wb = load_workbook(path_mac_jm)
 ws = wb.active
 cell = ws.cell(row = 1, column = 1)
 print(cell.value)
-
 ws['A1'].font = Font(name= 'Y14.5-2009')
 
 wb.save(path_mac_jm2)
