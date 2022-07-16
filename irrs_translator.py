@@ -18,9 +18,22 @@ right_symbols = right_symbols[::-1]
 right_symbols = right_symbols.replace("⌖", "¿~", 1)
 right_symbols = right_symbols.replace("Ⓜ", "Ì~", 1)
 print(right_symbols)
-ws['A1'] = right_symbols
+#ws['A1'] = right_symbols
 ws['A1'].font = Font(name= 'Y14.5-2009')
 
+first_half = right_symbols.split('{')[0]
+second_half = right_symbols.split('{')[1]
+
+alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz."
+final_symbols = ""
+for letter in second_half:
+    if letter in alphabet:
+        letter = letter + "`"
+    final_symbols = final_symbols + letter
+final_symbols = first_half+'{'+final_symbols
+print(final_symbols)
+
+ws['A1'] = final_symbols
 wb.save(path_mac_jm2)
 # TODO:
     # [] add a function to read an excel table with the codes
