@@ -14,9 +14,10 @@ path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_to
 
 path_full_irss = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
 
-start_cell = "BP Specification"
+
 
 def find_bp_specification(worksheet):
+    start_cell = "BP Specification"
     for col in range(worksheet.min_column, worksheet.max_column):
         for row in range(worksheet.min_row, worksheet.max_row):
             if worksheet.cell(row,col).value == start_cell:
@@ -24,10 +25,16 @@ def find_bp_specification(worksheet):
                 break
     return start_row, start_col
 
+def iterate_through_column(worksheet):
+    start_row, start_col = find_bp_specification(worksheet)
+    for row in range(start_row, worksheet.max_row):
+        print(worksheet.cell(row,start_col).value)
+
+
 wb = load_workbook(path_full_irss)
 ws = wb.active
 
-find_bp_specification(ws)
+iterate_through_column(ws)
 
 cell = ws.cell(row = 1, column = 1)
 wrong_symbols = str(cell.value)
