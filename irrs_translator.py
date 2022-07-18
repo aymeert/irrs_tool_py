@@ -12,8 +12,23 @@ path_mac_jm2 = "/Users/javier/Documents/GitHub/irrs_tool_py/example_changed.xlsx
 path = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example.xlsx"
 path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example_changed.xlsx"
 
-wb = load_workbook(path_mac_ar_in)
+path_full_irss = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
+
+start_cell = "BP Specification"
+
+def find_bp_specification(worksheet):
+    for col in range(worksheet.min_column, worksheet.max_column):
+        for row in range(worksheet.min_row, worksheet.max_row):
+            if worksheet.cell(row,col).value == start_cell:
+                start_row, start_col = row, col
+                break
+    return start_row, start_col
+
+wb = load_workbook(path_full_irss)
 ws = wb.active
+
+find_bp_specification(ws)
+
 cell = ws.cell(row = 1, column = 1)
 wrong_symbols = str(cell.value)
 right_symbols = wrong_symbols.replace("|", "{", 1)
@@ -21,8 +36,8 @@ right_symbols = right_symbols[::-1].replace("|", "}", 1)
 right_symbols = right_symbols[::-1]
 right_symbols = right_symbols.replace("⌖", "¿~", 1)
 right_symbols = right_symbols.replace("Ⓜ", "Ì~", 1)
-print(right_symbols)
-#ws['A1'] = right_symbols
+# print(right_symbols)
+# ws['A1'] = right_symbols
 ws['A1'].font = Font(name= 'Y14.5-2009')
 
 first_half = right_symbols.split('{')[0]
@@ -35,10 +50,10 @@ for letter in second_half:
         letter = letter + "`"
     final_symbols = final_symbols + letter
 final_symbols = first_half+'{'+final_symbols
-print(final_symbols)
+# print(final_symbols)
 
 ws['A1'] = final_symbols
-wb.save(path_mac_ar_out)
+wb.save(path2)
 # TODO:
     # [] add a function to read an excel table with the codes
     #   translation
