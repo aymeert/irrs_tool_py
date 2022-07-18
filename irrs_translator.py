@@ -3,12 +3,16 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 
+
+path_mac_ar_in = "/Users/aymeerodriguez/Documents/GitHub/irrs_tool_py/example.xlsx"
+path_mac_ar_out = "/Users/aymeerodriguez/Documents/GitHub/irrs_tool_py/example_changed.xlsx"
+
 path_mac_jm = "/Users/javier/Documents/GitHub/irrs_tool_py/example.xlsx"
 path_mac_jm2 = "/Users/javier/Documents/GitHub/irrs_tool_py/example_changed.xlsx"
 path = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example.xlsx"
 path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example_changed.xlsx"
 
-wb = load_workbook(path_mac_jm)
+wb = load_workbook(path_mac_ar_in)
 ws = wb.active
 cell = ws.cell(row = 1, column = 1)
 wrong_symbols = str(cell.value)
@@ -34,7 +38,7 @@ final_symbols = first_half+'{'+final_symbols
 print(final_symbols)
 
 ws['A1'] = final_symbols
-wb.save(path_mac_jm2)
+wb.save(path_mac_ar_out)
 # TODO:
     # [] add a function to read an excel table with the codes
     #   translation
