@@ -14,6 +14,7 @@ path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_to
 
 path_full_irss = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
 path_full_irss_mac = "/Users/javier/Documents/GitHub/irrs_tool_py/QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
+path_full_irss_ar = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A changed 2022-07-15-15-22-38.xlsx"
 
 def open_workbook(path_to_workbook):                                     # opening excel 
     workbook = load_workbook(path_to_workbook)
@@ -81,5 +82,6 @@ workbook.save(path_mac_jm2)
     #   translation
     # [] modify the processIRRS function to replace the symbols based
     #   on the translation table
-    # [] add a function to read each IRRS to be translated
-    # [] add a function to export each translated IRRS
+    # [X] add a function to read each IRRS to be translated
+    # [X] add a function to export each translated IRRS
+    # [] create a user interface
