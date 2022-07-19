@@ -73,9 +73,9 @@ def is_simple_frame(cell_content):
         return True
     else: return False
 
-workbook, worksheet  = open_workbook(path_full_irss_mac)                   # exporting into another excel file
+workbook, worksheet  = open_workbook(path_full_irss)                   # exporting into another excel file
 translated_worksheet = iterate_through_column(worksheet)
-workbook.save(path_mac_jm2)
+workbook.save(path2)
 
 # TODO:
     # [] add a function to read an excel table with the codes
