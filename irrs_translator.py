@@ -15,12 +15,12 @@ path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_to
 path_full_irss = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
 path_full_irss_mac = "/Users/javier/Documents/GitHub/irrs_tool_py/QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
 
-def open_workbook(path_to_workbook):
+def open_workbook(path_to_workbook):                                     # opening excel 
     workbook = load_workbook(path_to_workbook)
     worksheet = workbook["Final Or Supplier Manufactured"]
     return workbook, worksheet
 
-def find_bp_specification(worksheet):
+def find_bp_specification(worksheet):                                    # finding the first cell to translate
     start_cell = "BP Specification"
     for col in range(worksheet.min_column, worksheet.max_column):
         for row in range(worksheet.min_row, worksheet.max_row):
@@ -29,7 +29,7 @@ def find_bp_specification(worksheet):
                 break
     return start_row, start_col
 
-def iterate_through_column(worksheet):
+def iterate_through_column(worksheet):                                   # function to keep translating the following cells 
     start_row, start_col = find_bp_specification(worksheet)
     for row in range(start_row + 1, worksheet.max_row):
         cell = worksheet.cell(row,start_col)
@@ -40,7 +40,7 @@ def iterate_through_column(worksheet):
         cell.value = translated_symbols
     return worksheet
 
-def frame_simple_cell(cell):
+def frame_simple_cell(cell):                                            # function to create the box for the perfect dimensions
     wrong_symbols = str(cell.value)
     wrong_symbols = str(cell.value)
     right_symbols = wrong_symbols.replace("|", "{", 1)
@@ -60,7 +60,7 @@ def frame_simple_cell(cell):
     final_symbols = first_half+'{'+final_symbols
     return final_symbols
 
-def translate_by_cell_type(cell):
+def translate_by_cell_type(cell):                                          # Main funtion for identification of the type of cell (so far only two cases: simple cell and no change)  
     cell_content = cell.value
     if is_simple_frame(cell_content):
         translated_cell = frame_simple_cell(cell)
@@ -72,7 +72,7 @@ def is_simple_frame(cell_content):
         return True
     else: return False
 
-workbook, worksheet  = open_workbook(path_full_irss_mac)
+workbook, worksheet  = open_workbook(path_full_irss_mac)                   # exporting into another excel file
 translated_worksheet = iterate_through_column(worksheet)
 workbook.save(path_mac_jm2)
 
