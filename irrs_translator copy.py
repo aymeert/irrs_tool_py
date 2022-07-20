@@ -9,8 +9,6 @@ path = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_too
 path2 = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\example_changed.xlsx"
 path_full_irss = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
 path_full_irss_mac = "/Users/javier/Documents/GitHub/irrs_tool_py/QC322-110-00 Rev A 2022-07-15-15-22-38.xlsx"
-path_full_irss_ar = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC322-110-00 Rev A changed 2022-07-15-15-22-38.xlsx"
-
 path_to_translation_table = "/Users/javier/Documents/GitHub/irrs_tool_py/translation_table.xlsx"
 
 def open_workbook(path_to_workbook):
@@ -142,17 +140,8 @@ def is_simple_frame(cell_content):
         return True
     else: return False
 
-workbook, worksheet  = open_workbook(path_full_irss)                   # exporting into another excel file
+workbook, worksheet  = open_workbook(path_full_irss_mac)
 translated_worksheet = iterate_through_column(worksheet)
-
-# TODO:
-    # [] add a function to read an excel table with the codes
-    #   translation
-    # [] modify the processIRRS function to replace the symbols based
-    #   on the translation table
-    # [X] add a function to read each IRRS to be translated
-    # [X] add a function to export each translated IRRS
-    # [] create a user interface
 #testing
 translate_gdt_symbols(worksheet)
 
