@@ -2,6 +2,8 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font
 import openpyxl.cell._writer
 from pathlib import Path
+import tkinter as tk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 path_to_translation_table_mac = "/Users/javier/Documents/GitHub/irrs_tool_py/translation_table.xlsx"
 path_to_translation_table = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\translation_table.xlsx")
@@ -41,21 +43,28 @@ def translate_by_cell_type(cell):
     """Identifies the kind of cell to use the appropriate translation method"""
     cell_content = cell.value
     if is_simple_frame(cell_content):
-        translated_cell = frame_simple_cell(cell)
-    else: translated_cell = translate_gdt_symbols(cell) # this was changed from cell_content
+        translated_cell = frame_simple_cell(cell_content)
+    elif is_composite_frame(cell_content):
+        translated_cell = frame_composite_cell(cell_content)
+    else: translated_cell = translate_gdt_symbols(cell_content) # this was changed from cell_content
     return translated_cell
 
 
 def is_simple_frame(cell_content):
     """Identifies if a cell's content is a simple GD&T frame"""
-    if cell_content.count("|") >= 2:
+    if cell_content.count("|") >= 2 and cell_content.count("FRAME") == 0:
         return True
     else: return False
 
+def is_composite_frame(cell_content):
+    """Identifies if a cell's content is a composite frame"""
+    if cell_content.count("FRAME") == 2:
+        return True
+    else: return False 
 
-def frame_simple_cell(cell):
+def frame_simple_cell(cell_content):
     """Adds framing to cells that require a single GD&T frame"""
-    translated_symbols = translate_gdt_symbols(cell)
+    translated_symbols = translate_gdt_symbols(cell_content)
     translated_symbols = translated_symbols.replace("|", "{", 1)
     translated_symbols = translated_symbols[::-1].replace("|", "}", 1)
     translated_symbols = translated_symbols[::-1]
@@ -68,10 +77,24 @@ def frame_simple_cell(cell):
     return complete_translation
 
 
-def translate_gdt_symbols(cell):
+def frame_composite_cell(cell_content):
+    """Adds framing to cells that require a composite GD&T cell"""
+    composite_frame = cell_content.replace("FRAME 1|","",1)
+    before_frame_2 = composite_frame.split("FRAME 2")[0]
+    after_frame_2 = composite_frame.split("FRAME 2")[1]
+    translated_frame_1 = frame_simple_cell(before_frame_2)
+    frame_1_symbol = translated_frame_1.split("|")[0]
+    translated_frame_2 = frame_simple_cell(after_frame_2)
+    translated_frame_2 = frame_1_symbol + translated_frame_2.replace( "{","|",1)
+    composite_frame = translated_frame_1 + "  " + translated_frame_2
+    return composite_frame 
+
+
+def translate_gdt_symbols(cell_content):
     """Translates the GD&T symbols from the translation table"""
-    translated_symbols = str(cell.value)
+    translated_symbols = cell_content # changing it from this str(cell.value) to cell_content
     translation_table = read_translation_table(path_to_translation_table) # change the path depending on the OS
+    translated_symbols = translated_symbols.replace("<o>","Ø") #handling special case
     for row in range(translation_table.min_row + 1, translation_table.max_row):
         correct_symbol = str(translation_table.cell(row,2).value)
         incorrect_symbol = translation_table.cell(row,3).value #not reading it as a string initially
@@ -124,45 +147,50 @@ def generate_irrs_output_path(path_to_irrs_for_translation):
     path_to_translated_irrs = Path(path_to_translated_irrs) # !!! Need to add [1:-1] at the end of the variable !!!
     return path_to_translated_irrs
 
-path_to_irrs_for_translation = "C:\\Users\\aymee.rodriguez\\OneDrive - Exactech, Inc\\Projects\\irrs_tool_py\\QC321-150-46 Rev A 2022-07-08-10-10-16.xlsx"
 
-path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
-workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation))
-translated_worksheet = iterate_through_column(worksheet)
-workbook.save(path_to_translated_irrs)
+def translate_irrs_button_logic():
+    """Main logic for window GUI"""
+    path_to_irrs_for_translation = list_irrs_path.get()
+    path_to_irrs_for_translation = path_to_irrs_for_translation.replace('{','')
+    path_to_irrs_for_translation = path_to_irrs_for_translation.replace('}','')
+    if path_to_irrs_for_translation:
+        path_check_if_valid_irrs = Path(path_to_irrs_for_translation)
+        if path_check_if_valid_irrs.is_file():
+            path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
+            workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation))
+            translated_worksheet = iterate_through_column(worksheet)
+            workbook.save(path_to_translated_irrs)
+            workbook.close()
+            label_footer["text"] = "Translation successful! New file saved in the same location with [Translated] appended"
+        else:
+            label_footer["text"] = "Path provided is not valid, try again"
+    else:
+        label_footer["text"] = "Input is not valid, try again"
 
-# print(r"""
-#  _______   __  ___  _____ _____ _____ _____  _   _                                        
-# |  ___\ \ / / / _ \/  __ \_   _|  ___/  __ \| | | |                                       
-# | |__  \ V / / /_\ \ /  \/ | | | |__ | /  \/| |_| |                                       
-# |  __| /   \ |  _  | |     | | |  __|| |    |  _  |                                       
-# | |___/ /^\ \| | | | \__/\ | | | |___| \__/\| | | |                                       
-# \____/\/   \/\_| |_/\____/ \_/ \____/ \____/\_| |_/                                       
-                                                                                          
-                                                                                          
-#  _________________  _____   ___________  ___   _   _  _____ _       ___ _____ ___________ 
-# |_   _| ___ \ ___ \/  ___| |_   _| ___ \/ _ \ | \ | |/  ___| |     / _ \_   _|  _  | ___ \
-#   | | | |_/ / |_/ /\ `--.    | | | |_/ / /_\ \|  \| |\ `--.| |    / /_\ \| | | | | | |_/ /
-#   | | |    /|    /  `--. \   | | |    /|  _  || . ` | `--. \ |    |  _  || | | | | |    / 
-#  _| |_| |\ \| |\ \ /\__/ /   | | | |\ \| | | || |\  |/\__/ / |____| | | || | \ \_/ / |\ \ 
-#  \___/\_| \_\_| \_|\____/    \_/ \_| \_\_| |_/\_| \_/\____/\_____/\_| |_/\_/  \___/\_| \_|
-                                                                                                                                                                                    
-# """)
+window = TkinterDnD.Tk()  # notice - use this instead of tk.Tk()
+window.title("Exactech IRRS Translator v 0.25")
+window.columnconfigure(0, minsize = 250)
+window.rowconfigure([0, 3], minsize = 100)
 
-# while True:
-#     path_to_irrs_for_translation = input("Drag the IRRS to be translated in here, and press enter to translate: ")
-#     if path_to_irrs_for_translation:
-#         path_check_if_valid_irrs = Path(path_to_irrs_for_translation[1:-1])
-#         if path_check_if_valid_irrs.is_file():
-#             path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
-#             workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation[1:-1]))
-#             translated_worksheet = iterate_through_column(worksheet)
-#             workbook.save(path_to_translated_irrs)
-#             print("Translation successful! New file saved in the same location with [Translated] appended")
-#         else:
-#             print("Path provided is not valid, try again")
-#     else:
-#         print("Input is not valid, try again")
+label_title = tk.Label( text="Drag IRRS to be translated here: ")
+label_title.grid(row = 0, column=0)
+
+list_irrs_path = tk.Entry(width=50)
+list_irrs_path.grid(row = 1, column = 0)
+list_irrs_path.drop_target_register(DND_FILES)
+list_irrs_path.dnd_bind('<<Drop>>', lambda e: list_irrs_path.insert(0, e.data))
+
+button_translate_irrs = tk.Button( text="Translate", command=translate_irrs_button_logic)
+button_translate_irrs.grid(row = 2, column = 0)
+label_footer = tk.Label( text="")
+label_footer.grid(row = 3, column=0)
+
+# label_title.pack()
+# list_irrs_path.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+# button_translate_irrs.pack()
+# label_footer.pack()
+#window.iconbitmap("exactech.ico")
+window.mainloop()
 
 # TODO:
 """
@@ -172,16 +200,25 @@ workbook.save(path_to_translated_irrs)
     on the translation table
     [X] add a function to read each IRRS to be translated
     [X] add a function to export each translated IRRS
-    [] replace all string concatenation with ''.join()
+    [] replace all string concatenation with ''.join() #performance
     [X] add a function to create the exported file with the same name as orignal and in the same folder
     [X] add a function to get the active directory and use the translation table in that directory
     [] add 5 cases:
         [X] simple frame
             [X] simple frame with text at the end
-        [] double frame
+        [] double frame (there are two double frame symbols; not sure if NX output is different for each) 
+           [X] composite (we have this case)
+           [] stacked (don't have this one)
         [X] not framed but translated
-        [] Ra
+        [] Ra (check symbols in NX)
         [X] nothing needs to happen
-    [x] create a graphical (or terminal) user interface
+    [X] create a graphical (or terminal) user interface
     [X] create an executable program to distribute
+    [] check if translation table exists, if not ask for new directory
+    [] only let the user run the program if they are using the latest version
+    [X] remove {} when at the begining and the end of a string path
+    [X] reduce size of the program to increase speed #performance
+    [] use list comprhension when available #performance
+    [X] Improve terminal user interface
+    [X] Create survey to see what the users think 
 """
