@@ -130,7 +130,7 @@ def fix_surface_finish(cell_content):
 def translate_gdt_symbols(cell_content):
     """Translates the GD&T symbols from the translation table"""
     translated_symbols = cell_content # changing it from this str(cell.value) to cell_content
-    translation_table = read_translation_table(path_to_translation_table) # change the path depending on the OS
+    translation_table = read_translation_table(path_to_translation_table)
     translated_symbols = translated_symbols.replace("<o>","Ø") #handling special case
     translated_symbols = translated_symbols.replace(",","") #handling special case
     for row in range(translation_table.min_row + 1, translation_table.max_row):
@@ -188,23 +188,59 @@ def generate_irrs_output_path(path_to_irrs_for_translation):
 
 def translate_irrs_button_logic():
     """Main logic for window GUI"""
+    files_translated_counter = 0
     for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
+        files_translated_counter += 1
         if list_element:
             path_check_if_valid_irrs = Path(list_element)
             if path_check_if_valid_irrs.is_file():
                 path_to_translated_irrs = generate_irrs_output_path(list_element)
                 if not path_to_translation_table.is_file():
                     label_footer["text"] = "Translation Table not available. Check VPN connection. For help, email: aymee.rodriguez@exac.com"
-                workbook, worksheet  = open_workbook(Path(list_element))
-                translated_worksheet = iterate_through_column(worksheet)
-                workbook.save(path_to_translated_irrs)
-                workbook.close()
-                label_footer["text"] = "Translation successful! " + str(element_index + 1) + " file(s) saved in the same location with [Translated] appended"
-                list_irrs_path.delete(0)
+                try: 
+                    workbook, worksheet  = open_workbook(Path(list_element))
+                    translated_worksheet = iterate_through_column(worksheet)
+                    workbook.save(path_to_translated_irrs)
+                    workbook.close()
+                except:
+                    files_translated_counter -= 1
+                    continue
             else:
                 label_footer["text"] = "Path provided is not valid, try again"
         else:
             label_footer["text"] = "Input is not valid, try again"
+    label_footer["text"] = "Translation successful! " + str(files_translated_counter) + " file(s) saved in the same location with [Translated] appended"
+    list_irrs_path.delete(0,tk.END)
+
+
+def read_tabulated_data(path_to_workbook):
+    """Opens the tabulated spreadsheet"""
+    workbook = load_workbook(path_to_workbook)
+    worksheet = workbook.active
+    return workbook, worksheet
+
+
+def add_columns_to_tabulated_table(path_to_file):
+    workbook, worksheet = read_tabulated_data(Path(path_to_file))
+    return True
+
+
+def is_tabulated_data(path_to_file):
+    """Cheks that the file is not an IRRS"""
+    try:
+        open_workbook(path_to_file)
+    except KeyError:
+        return True
+    else:
+        return False
+
+def generate_tabulated_irrs():
+    """Generates tabulated IRRSs"""
+    for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
+        if is_tabulated_data(Path(list_element)):
+            button_generate_irrs["text"] = "Add Columns to Table"
+            
+    return
 
 
 def add_paths_to_listbox(event):
@@ -221,12 +257,16 @@ def add_paths_to_listbox(event):
     
 
 def clear_list_button_logic():
+    """Clears the list if mistakes were made"""
     list_irrs_path.delete(0, tk.END)
+
+
+
 
 
 window = TkinterDnD.Tk()  # notice - use this instead of tk.Tk()
 
-window.title("Exactech IRRS Translator v 0.29")
+window.title("Exactech IRRS Translator v 0.28")
 icon_path = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\exactech.ico")
 if icon_path.is_file():
     window.iconbitmap(icon_path)
@@ -249,20 +289,24 @@ scrollbar_x.grid(row = 2, column = 0, sticky = 'ew')
 scrollbar_y.config(command = list_irrs_path.xview)
 scrollbar_y.grid(row = 1, column = 1, sticky = 'ns')
 
-button_translate_irrs = tk.Button( text = "Translate", command = translate_irrs_button_logic)
+button_translate_irrs = tk.Button(text = "Translate", command = translate_irrs_button_logic)
 button_translate_irrs.grid(row = 3, column = 0, pady = 10) 
 
-button_clear = tk.Button( text="Clear List", command = clear_list_button_logic)
-button_clear.grid(row = 4, column = 0) 
+button_generate_irrs = tk.Button(text = "Generate Tabulated IRRS", command = generate_tabulated_irrs)
+button_generate_irrs.grid(row = 4, column = 0) 
+
+button_clear = tk.Button(text="Clear List", command = clear_list_button_logic)
+button_clear.grid(row = 5, column = 0) 
 
 label_footer = tk.Label(text = "")
-label_footer.grid(row = 5, column = 0, pady = 10)
+label_footer.grid(row = 6, column = 0, pady = 10)
 
 # to build:
 # open terminal and navigate to C:\Users\aymee.rodriguez\irrs\Scripts
 # run: activate.bat
 # replace irrs_translator.py with new one from VScode
 # the run: pyinstaller -F -w --icon=exactech.ico irrs_translator.py --additional-hooks-dir=.
+# open C:\Users\aymee.rodriguez\irrs\Scripts\dist and copy the irrs_translator.exe to the shared folder
 window.mainloop()
 
 # TODO:
