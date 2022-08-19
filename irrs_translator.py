@@ -5,7 +5,6 @@ from pathlib import Path
 import tkinter as tk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-path_to_translation_table_mac = "/Users/javier/Documents/GitHub/irrs_tool_py/translation_table.xlsx"
 path_to_translation_table = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\translation_table.xlsx")
 
 def open_workbook(path_to_workbook):
@@ -42,25 +41,45 @@ def iterate_through_column(worksheet):
 def translate_by_cell_type(cell):
     """Identifies the kind of cell to use the appropriate translation method"""
     cell_content = cell.value
-    if is_simple_frame(cell_content):
-        translated_cell = frame_simple_cell(cell_content)
-    elif is_composite_frame(cell_content):
+    if is_composite_frame(cell_content):
         translated_cell = frame_composite_cell(cell_content)
+    elif is_surface_finish(cell_content):
+        translated_cell = fix_surface_finish(cell_content)
+    elif is_stacked_frame(cell_content):
+        translated_cell = frame_stacked_cell(cell_content)
+    elif is_simple_frame(cell_content):
+        translated_cell = frame_simple_cell(cell_content)
     else: translated_cell = translate_gdt_symbols(cell_content) # this was changed from cell_content
     return translated_cell
 
 
 def is_simple_frame(cell_content):
     """Identifies if a cell's content is a simple GD&T frame"""
-    if cell_content.count("|") >= 2 and cell_content.count("FRAME") == 0:
+    if cell_content.count("|") >= 2 and cell_content.count("FRAME") == 0 and cell_content.count("<&80>") == 0:
         return True
     else: return False
+
 
 def is_composite_frame(cell_content):
     """Identifies if a cell's content is a composite frame"""
     if cell_content.count("FRAME") == 2:
         return True
     else: return False 
+
+
+def is_stacked_frame(cell_content):
+    """Identifies if a cell's content is a stacked frame""" 
+    if cell_content.count("<&80>") == 1:
+        return True
+    else: return False
+
+
+def is_surface_finish(cell_content):
+    """Identifies if a cell's content is surface finish"""
+    if cell_content.count("(|Lay Symbol:R<L>a<L>") == 1:
+        return True
+    else: return False
+
 
 def frame_simple_cell(cell_content):
     """Adds framing to cells that require a single GD&T frame"""
@@ -90,11 +109,30 @@ def frame_composite_cell(cell_content):
     return composite_frame 
 
 
+def frame_stacked_cell(cell_content): #This only works for 2 stacked lines, needs improvement for more than 2
+    """Adds framing to cells that require a stacked GD&T cell"""
+    stacked_frame = cell_content.replace("<&80>","s",1)
+    before_symbol = stacked_frame.split("s")[0]
+    after_symbol = stacked_frame.split("s")[1]
+    translated_frame_1 = frame_simple_cell(before_symbol)
+    translated_frame_2 = frame_simple_cell(after_symbol)
+    stacked_frame = translated_frame_1 + "  " + translated_frame_2
+    return stacked_frame
+
+
+def fix_surface_finish(cell_content):
+    """Fixes surface finish output from NX generator report"""
+    surface_finish = cell_content.replace("(|Lay Symbol:R<L>a<L>"," Ra",1)
+    surface_finish = surface_finish.replace(")","",1)
+    return surface_finish
+
+
 def translate_gdt_symbols(cell_content):
     """Translates the GD&T symbols from the translation table"""
     translated_symbols = cell_content # changing it from this str(cell.value) to cell_content
     translation_table = read_translation_table(path_to_translation_table) # change the path depending on the OS
     translated_symbols = translated_symbols.replace("<o>","Ø") #handling special case
+    translated_symbols = translated_symbols.replace(",","") #handling special case
     for row in range(translation_table.min_row + 1, translation_table.max_row):
         correct_symbol = str(translation_table.cell(row,2).value)
         incorrect_symbol = translation_table.cell(row,3).value #not reading it as a string initially
@@ -150,46 +188,57 @@ def generate_irrs_output_path(path_to_irrs_for_translation):
 
 def translate_irrs_button_logic():
     """Main logic for window GUI"""
-    path_to_irrs_for_translation = list_irrs_path.get()
-    path_to_irrs_for_translation = path_to_irrs_for_translation.replace('{','')
-    path_to_irrs_for_translation = path_to_irrs_for_translation.replace('}','')
-    if path_to_irrs_for_translation:
-        path_check_if_valid_irrs = Path(path_to_irrs_for_translation)
-        if path_check_if_valid_irrs.is_file():
-            path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
-            workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation))
-            translated_worksheet = iterate_through_column(worksheet)
-            workbook.save(path_to_translated_irrs)
-            workbook.close()
-            label_footer["text"] = "Translation successful! New file saved in the same location with [Translated] appended"
+    for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
+        path_to_irrs_for_translation = list_element
+        path_to_irrs_for_translation = path_to_irrs_for_translation.replace('{','')
+        path_to_irrs_for_translation = path_to_irrs_for_translation.replace('}','')
+        if path_to_irrs_for_translation:
+            path_check_if_valid_irrs = Path(path_to_irrs_for_translation)
+            if path_check_if_valid_irrs.is_file():
+                path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
+                workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation))
+                translated_worksheet = iterate_through_column(worksheet)
+                workbook.save(path_to_translated_irrs)
+                workbook.close()
+                label_footer["text"] = "Translation successful! " + str(element_index + 1) + " file(s) saved in the same location with [Translated] appended"
+                list_irrs_path.delete(0)
+            else:
+                label_footer["text"] = "Path provided is not valid, try again"
         else:
-            label_footer["text"] = "Path provided is not valid, try again"
-    else:
-        label_footer["text"] = "Input is not valid, try again"
+            label_footer["text"] = "Input is not valid, try again"
 
 window = TkinterDnD.Tk()  # notice - use this instead of tk.Tk()
-window.title("Exactech IRRS Translator v 0.25")
-window.columnconfigure(0, minsize = 250)
-window.rowconfigure([0, 3], minsize = 100)
 
-label_title = tk.Label( text="Drag IRRS to be translated here: ")
+window.title("Exactech IRRS Translator v 0.28")
+window.resizable(False, False)
+window.columnconfigure(0, minsize = 250)
+window.rowconfigure([0, 4], minsize = 100) 
+
+label_title = tk.Label( text="Drag IRRS to be translated here one at a time: ")
 label_title.grid(row = 0, column=0)
 
-list_irrs_path = tk.Entry(width=50)
-list_irrs_path.grid(row = 1, column = 0)
+scrollbar_x = tk.Scrollbar(orient="horizontal")
+scrollbar_y = tk.Scrollbar(orient="vertical")
+list_irrs_path = tk.Listbox(width=100, xscrollcommand=scrollbar_x.set, yscrollcommand=scrollbar_y.set) 
+list_irrs_path.grid(row = 1, column = 0, padx = 10)
 list_irrs_path.drop_target_register(DND_FILES)
-list_irrs_path.dnd_bind('<<Drop>>', lambda e: list_irrs_path.insert(0, e.data))
+list_irrs_path.dnd_bind('<<Drop>>', lambda e: list_irrs_path.insert(tk.END, e.data))
+
+scrollbar_x.config(command = list_irrs_path.xview)
+scrollbar_x.grid(row = 2, column = 0, sticky = 'ew')
+scrollbar_y.config(command = list_irrs_path.xview)
+scrollbar_y.grid(row = 1, column = 1, sticky = 'ns')
 
 button_translate_irrs = tk.Button( text="Translate", command=translate_irrs_button_logic)
-button_translate_irrs.grid(row = 2, column = 0)
-label_footer = tk.Label( text="")
-label_footer.grid(row = 3, column=0)
+button_translate_irrs.grid(row = 3, column = 0, pady = 10) 
+label_footer = tk.Label(text = "")
+label_footer.grid(row = 4, column=0)
 
-# label_title.pack()
-# list_irrs_path.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
-# button_translate_irrs.pack()
-# label_footer.pack()
-#window.iconbitmap("exactech.ico")
+# to build:
+# open terminal and navigate to C:\Users\aymee.rodriguez\irrs\Scripts
+# run: activate.bat
+# replace irrs_translator.py with new one from VScode
+# the run: pyinstaller -F -w --icon=exactech.ico irrs_translator.py --additional-hooks-dir=.
 window.mainloop()
 
 # TODO:
@@ -203,22 +252,31 @@ window.mainloop()
     [] replace all string concatenation with ''.join() #performance
     [X] add a function to create the exported file with the same name as orignal and in the same folder
     [X] add a function to get the active directory and use the translation table in that directory
-    [] add 5 cases:
+    [X] add 5 cases:
         [X] simple frame
             [X] simple frame with text at the end
-        [] double frame (there are two double frame symbols; not sure if NX output is different for each) 
+        [X] double frame (there are two double frame symbols; not sure if NX output is different for each) 
            [X] composite (we have this case)
-           [] stacked (don't have this one)
+           [X] stacked 
         [X] not framed but translated
-        [] Ra (check symbols in NX)
+        [X] Ra (check symbols in NX)
         [X] nothing needs to happen
     [X] create a graphical (or terminal) user interface
     [X] create an executable program to distribute
-    [] check if translation table exists, if not ask for new directory
-    [] only let the user run the program if they are using the latest version
     [X] remove {} when at the begining and the end of a string path
     [X] reduce size of the program to increase speed #performance
     [] use list comprhension when available #performance
     [X] Improve terminal user interface
     [X] Create survey to see what the users think 
+    [X] Delete path after translation is over
+    [X] Bigger box 
+    [X] Able to add several IRRS to be translated at the same time
+    [X] Make a list for the drag and drop box so that it is easier for the user to see
+    [] Add program icon
+    [] Add vertical bar
+    [] Find best size for the window
+    [] Add multiple files at once instead of dropping one by one
+    [] check if translation table exists, if not ask for new directory
+    [] only let the user run the program if they are using the latest version
+    [] Add buttom to clear entry box
 """
