@@ -189,14 +189,13 @@ def generate_irrs_output_path(path_to_irrs_for_translation):
 def translate_irrs_button_logic():
     """Main logic for window GUI"""
     for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
-        path_to_irrs_for_translation = list_element
-        path_to_irrs_for_translation = path_to_irrs_for_translation.replace('{','')
-        path_to_irrs_for_translation = path_to_irrs_for_translation.replace('}','')
-        if path_to_irrs_for_translation:
-            path_check_if_valid_irrs = Path(path_to_irrs_for_translation)
+        if list_element:
+            path_check_if_valid_irrs = Path(list_element)
             if path_check_if_valid_irrs.is_file():
-                path_to_translated_irrs = generate_irrs_output_path(path_to_irrs_for_translation)
-                workbook, worksheet  = open_workbook(Path(path_to_irrs_for_translation))
+                path_to_translated_irrs = generate_irrs_output_path(list_element)
+                if not path_to_translation_table.is_file():
+                    label_footer["text"] = "Translation Table not available. Check VPN connection. For help, email: aymee.rodriguez@exac.com"
+                workbook, worksheet  = open_workbook(Path(list_element))
                 translated_worksheet = iterate_through_column(worksheet)
                 workbook.save(path_to_translated_irrs)
                 workbook.close()
@@ -207,32 +206,57 @@ def translate_irrs_button_logic():
         else:
             label_footer["text"] = "Input is not valid, try again"
 
+
+def add_paths_to_listbox(event):
+    """Adds file paths to listbox and checks that no duplicates are added"""
+    paths_list = event.data
+    paths_list = paths_list.split('} {')
+    items_in_listbox = {list_element for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)) if list_element}
+    paths_list = [path.replace('{','') for path in paths_list]
+    paths_list = [path.replace('}','') for path in paths_list]
+    set_of_paths = set(paths_list)
+    set_of_paths = set_of_paths.difference(items_in_listbox) # only adding unique items
+    for path in set_of_paths:
+        list_irrs_path.insert("end",path)
+    
+
+def clear_list_button_logic():
+    list_irrs_path.delete(0, tk.END)
+
+
 window = TkinterDnD.Tk()  # notice - use this instead of tk.Tk()
 
-window.title("Exactech IRRS Translator v 0.28")
+window.title("Exactech IRRS Translator v 0.29")
+icon_path = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\exactech.ico")
+if icon_path.is_file():
+    window.iconbitmap(icon_path)
 window.resizable(False, False)
 window.columnconfigure(0, minsize = 250)
-window.rowconfigure([0, 4], minsize = 100) 
+window.rowconfigure([0, 4], minsize = 50) 
 
-label_title = tk.Label( text="Drag IRRS to be translated here one at a time: ")
-label_title.grid(row = 0, column=0)
+label_title = tk.Label( text = "Drag IRRS to be translated here: ")
+label_title.grid(row = 0, column = 0)
 
-scrollbar_x = tk.Scrollbar(orient="horizontal")
-scrollbar_y = tk.Scrollbar(orient="vertical")
-list_irrs_path = tk.Listbox(width=100, xscrollcommand=scrollbar_x.set, yscrollcommand=scrollbar_y.set) 
-list_irrs_path.grid(row = 1, column = 0, padx = 10)
+scrollbar_x = tk.Scrollbar(orient = "horizontal")
+scrollbar_y = tk.Scrollbar(orient = "vertical")
+list_irrs_path = tk.Listbox(width = 100, xscrollcommand = scrollbar_x.set, yscrollcommand = scrollbar_y.set) 
+list_irrs_path.grid(row = 1, column = 0)
 list_irrs_path.drop_target_register(DND_FILES)
-list_irrs_path.dnd_bind('<<Drop>>', lambda e: list_irrs_path.insert(tk.END, e.data))
+list_irrs_path.dnd_bind('<<Drop>>', add_paths_to_listbox) #lambda e: list_irrs_path.insert(tk.END, e.data)
 
 scrollbar_x.config(command = list_irrs_path.xview)
 scrollbar_x.grid(row = 2, column = 0, sticky = 'ew')
 scrollbar_y.config(command = list_irrs_path.xview)
 scrollbar_y.grid(row = 1, column = 1, sticky = 'ns')
 
-button_translate_irrs = tk.Button( text="Translate", command=translate_irrs_button_logic)
+button_translate_irrs = tk.Button( text = "Translate", command = translate_irrs_button_logic)
 button_translate_irrs.grid(row = 3, column = 0, pady = 10) 
+
+button_clear = tk.Button( text="Clear List", command = clear_list_button_logic)
+button_clear.grid(row = 4, column = 0) 
+
 label_footer = tk.Label(text = "")
-label_footer.grid(row = 4, column=0)
+label_footer.grid(row = 5, column = 0, pady = 10)
 
 # to build:
 # open terminal and navigate to C:\Users\aymee.rodriguez\irrs\Scripts
@@ -273,10 +297,10 @@ window.mainloop()
     [X] Able to add several IRRS to be translated at the same time
     [X] Make a list for the drag and drop box so that it is easier for the user to see
     [] Add program icon
-    [] Add vertical bar
-    [] Find best size for the window
-    [] Add multiple files at once instead of dropping one by one
-    [] check if translation table exists, if not ask for new directory
+    [X] Fix vertical bar
+    [X] Find best size for the window
+    [X] Add multiple files at once instead of dropping one by one
+    [X] check if translation table exists, if not ask for new directory
     [] only let the user run the program if they are using the latest version
-    [] Add buttom to clear entry box
+    [X] Add buttom to clear entry box
 """
