@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
 path_to_translation_table = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\translation_table.xlsx")
+path_to_template = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\701-104-004.xlsx")
 
 def open_workbook(path_to_workbook):
     """Opens the IRRS to be translated"""
@@ -25,6 +26,16 @@ def find_bp_specification(worksheet):
     return start_row, start_col
 
 
+def find_word_in_worksheet(worksheet, word):
+    """Finds the coordinates of a cell"""
+    for col in range(worksheet.min_column, worksheet.max_column):
+        for row in range(worksheet.min_row, worksheet.max_row):
+            if worksheet.cell(row,col).value == word:
+                cell_row, cell_col = row, col
+                break
+    return cell_row, cell_col
+
+
 def iterate_through_column(worksheet):
     """Accesses cell by cell in the column to be translated"""
     start_row, start_col = find_bp_specification(worksheet)
@@ -32,7 +43,7 @@ def iterate_through_column(worksheet):
         cell = worksheet.cell(row,start_col)
         if cell.value is None:
             break
-        cell.font = Font(name= 'Y14.5-2009', size=13)
+        cell.font = Font(color='FF000000', name= 'Y14.5-2009', size=13)
         translated_symbols = translate_by_cell_type(cell)
         cell.value = translated_symbols
     return worksheet
@@ -186,9 +197,54 @@ def generate_irrs_output_path(path_to_irrs_for_translation):
     return path_to_translated_irrs
 
 
+def copy_to_correct_template(worksheet_irrs, worksheet_template):
+    """Copies IRRS contents to the correct template"""
+    start_row_irrs, start_col_irrs = find_bp_specification(worksheet_irrs)
+    start_row_template, start_col_template = find_bp_specification(worksheet_template)
+    upper_row, upper_col = find_word_in_worksheet(worksheet_irrs, "Upper Limit")
+    irrs_comment_row, irrs_comment_col = find_word_in_worksheet(worksheet_irrs, "IRRS Comments")
+
+    relevant_cells = ["Sampling Plan (IRRS) Name:","Product Number:","No. of Inspection Lines:"]
+    # Unmerging cell ranges for the relevant cells
+    sampling_plan_name_nx = "E5:G5"
+    sampling_plan_name_temp = "D5:G5"
+    worksheet_irrs.unmerge_cells(range_string = sampling_plan_name_nx)
+    worksheet_template.unmerge_cells(range_string = sampling_plan_name_temp)
+    
+    number_inspection_lines_nx = "O4:S4"
+    number_inspection_lines_temp = "O4:S4"
+    worksheet_irrs.unmerge_cells(range_string = number_inspection_lines_nx)
+    worksheet_template.unmerge_cells(range_string = number_inspection_lines_temp)
+
+    # Copying specific content
+    worksheet_template.cell(row = 5, column = 4).value = worksheet_irrs.cell(row = 5, column = 5).value
+    worksheet_template.cell(row = 5, column = 13).value = worksheet_irrs.cell(row = 5, column = 13).value
+    worksheet_template.cell(row = 4, column = 15).value = worksheet_irrs.cell(row = 4, column = 15).value
+
+    # Merging the cells
+    worksheet_irrs.merge_cells(range_string = sampling_plan_name_nx)
+    worksheet_template.merge_cells(range_string = sampling_plan_name_temp)
+    
+    worksheet_irrs.merge_cells(range_string = number_inspection_lines_nx)
+    worksheet_template.merge_cells(range_string = number_inspection_lines_temp)
+    
+    # Clearing the template
+    for row in range(start_row_irrs + 1, worksheet_template.max_row + 1):
+        for col in range(start_col_irrs - 1, irrs_comment_col + 1):
+            worksheet_template.cell(row = row, column = col).value = None
+            worksheet_template.cell(row = row, column = col).font = Font(color='FF000000')
+
+    # Copying from IRRS from NX to IRRS Template
+    for row in range(start_row_irrs + 1, worksheet_irrs.max_row + 1):
+        for col in range(start_col_irrs - 1, upper_col + 1):
+            worksheet_template.cell(row = row, column = col).value = worksheet_irrs.cell(row = row, column = col).value
+    return worksheet_template
+
+
 def translate_irrs_button_logic():
     """Main logic for window GUI"""
     files_translated_counter = 0
+    workbook_template, worksheet_template = open_workbook(path_to_template) # opening the correct template
     for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
         files_translated_counter += 1
         if list_element:
@@ -197,19 +253,22 @@ def translate_irrs_button_logic():
                 path_to_translated_irrs = generate_irrs_output_path(list_element)
                 if not path_to_translation_table.is_file():
                     label_footer["text"] = "Translation Table not available. Check VPN connection. For help, email: aymee.rodriguez@exac.com"
-                try: 
-                    workbook, worksheet  = open_workbook(Path(list_element))
-                    translated_worksheet = iterate_through_column(worksheet)
-                    workbook.save(path_to_translated_irrs)
-                    workbook.close()
-                except:
-                    files_translated_counter -= 1
-                    continue
+                # try: 
+                workbook_irrs, worksheet_irrs = open_workbook(Path(list_element))
+                worksheet_template = copy_to_correct_template(worksheet_irrs, worksheet_template)
+                worksheet_template = iterate_through_column(worksheet_template)
+                workbook_template.save(path_to_translated_irrs)
+                workbook_template.close()
+                # except:
+                #     files_translated_counter -= 1
+                #     continue
+                if len(list_irrs_path.get(0,tk.END)) == files_translated_counter:
+                    label_footer["text"] = "Translation successful! " + str(files_translated_counter) + " file(s) saved in the same location with [Translated] appended"
             else:
                 label_footer["text"] = "Path provided is not valid, try again"
         else:
             label_footer["text"] = "Input is not valid, try again"
-    label_footer["text"] = "Translation successful! " + str(files_translated_counter) + " file(s) saved in the same location with [Translated] appended"
+    
     list_irrs_path.delete(0,tk.END)
 
 
@@ -259,6 +318,7 @@ def add_paths_to_listbox(event):
 def clear_list_button_logic():
     """Clears the list if mistakes were made"""
     list_irrs_path.delete(0, tk.END)
+    label_footer["text"] = "List cleared, add files for translation"
 
 
 
