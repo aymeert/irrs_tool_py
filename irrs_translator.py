@@ -28,9 +28,12 @@ def find_bp_specification(worksheet):
 
 def find_word_in_worksheet(worksheet, word):
     """Finds the coordinates of a cell"""
-    for col in range(worksheet.min_column, worksheet.max_column):
-        for row in range(worksheet.min_row, worksheet.max_row):
-            if worksheet.cell(row,col).value == word:
+    cell_row, cell_col = -1, -1
+    for col in range(worksheet.min_column, worksheet.max_column + 1):
+        for row in range(worksheet.min_row, worksheet.max_row + 1):
+            # print(str(worksheet.cell(row,col).value))
+            # print(word)
+            if ((str(worksheet.cell(row,col).value)).find(word) != -1):
                 cell_row, cell_col = row, col
                 break
     return cell_row, cell_col
@@ -193,7 +196,7 @@ def get_list_of_gdt_symbols(path_to_translation_table):
 def generate_irrs_output_path(path_to_irrs_for_translation):
     """Generate the output path for the translated IRRS with the same name"""
     path_to_translated_irrs = path_to_irrs_for_translation.replace(".xlsx", " [Translated].xlsx")
-    path_to_translated_irrs = Path(path_to_translated_irrs) # !!! Need to add [1:-1] at the end of the variable !!!
+    path_to_translated_irrs = Path(path_to_translated_irrs)
     return path_to_translated_irrs
 
 
@@ -201,8 +204,17 @@ def copy_to_correct_template(worksheet_irrs, worksheet_template):
     """Copies IRRS contents to the correct template"""
     start_row_irrs, start_col_irrs = find_bp_specification(worksheet_irrs)
     start_row_template, start_col_template = find_bp_specification(worksheet_template)
-    upper_row, upper_col = find_word_in_worksheet(worksheet_irrs, "Upper Limit")
+    upper_row, upper_col = find_word_in_worksheet(worksheet_irrs, "Upper Limit") #change back to "Upper Limit" to only copy "IRRS Comments"
     irrs_comment_row, irrs_comment_col = find_word_in_worksheet(worksheet_irrs, "IRRS Comments")
+
+
+# Changing color to black
+    worksheet_template.cell(row = 5, column = 4).font = Font(color='FF000000')
+    worksheet_template.cell(row = 5, column = 13).font = Font(color='FF000000')
+    worksheet_template.cell(row = 4, column = 15).font = Font(color='FF000000')
+    worksheet_template.cell(row = 6, column = 13).font = Font(color='FF000000')
+    worksheet_template.cell(row = 6, column = 4).font = Font(color='FF000000')
+    worksheet_template.cell(row = 4, column = 4).font = Font(color='FF000000')
 
     relevant_cells = ["Sampling Plan (IRRS) Name:","Product Number:","No. of Inspection Lines:"]
     # Unmerging cell ranges for the relevant cells
@@ -210,23 +222,43 @@ def copy_to_correct_template(worksheet_irrs, worksheet_template):
     sampling_plan_name_temp = "D5:G5"
     worksheet_irrs.unmerge_cells(range_string = sampling_plan_name_nx)
     worksheet_template.unmerge_cells(range_string = sampling_plan_name_temp)
+
+    sampling_plan_rev_nx = "E6:G6" #new
+    sampling_plan_rev_temp = "D6:G6"
+    worksheet_irrs.unmerge_cells(range_string = sampling_plan_rev_nx)
+    worksheet_template.unmerge_cells(range_string = sampling_plan_rev_temp)
     
     number_inspection_lines_nx = "O4:S4"
     number_inspection_lines_temp = "O4:S4"
     worksheet_irrs.unmerge_cells(range_string = number_inspection_lines_nx)
     worksheet_template.unmerge_cells(range_string = number_inspection_lines_temp)
 
-    # Copying specific content
-    worksheet_template.cell(row = 5, column = 4).value = worksheet_irrs.cell(row = 5, column = 5).value
-    worksheet_template.cell(row = 5, column = 13).value = worksheet_irrs.cell(row = 5, column = 13).value
-    worksheet_template.cell(row = 4, column = 15).value = worksheet_irrs.cell(row = 4, column = 15).value
+    DCRTC_nx = "E4:M4" #new
+    DCRTC_temp = "D4:M4"
+    worksheet_irrs.unmerge_cells(range_string = DCRTC_nx)
+    worksheet_template.unmerge_cells(range_string = DCRTC_temp)
 
+    # Copying specific content
+    worksheet_template.cell(row = 5, column = 4).value = worksheet_irrs.cell(row = 5, column = 5).value #sampling plan name
+    worksheet_template.cell(row = 5, column = 13).value = worksheet_irrs.cell(row = 5, column = 13).value #Product number
+    worksheet_template.cell(row = 4, column = 15).value = worksheet_irrs.cell(row = 4, column = 15).value #No. of inspection lines
+    worksheet_template.cell(row = 6, column = 13).value = worksheet_irrs.cell(row = 6, column = 13).value # product revision
+    worksheet_template.cell(row = 6, column = 4).value = worksheet_irrs.cell(row = 6, column = 5).value #sampling plan revision
+    worksheet_template.cell(row = 4, column = 4).value = worksheet_irrs.cell(row = 4, column = 5).value #DCRTC
+    
     # Merging the cells
     worksheet_irrs.merge_cells(range_string = sampling_plan_name_nx)
     worksheet_template.merge_cells(range_string = sampling_plan_name_temp)
+
+    worksheet_irrs.merge_cells(range_string = sampling_plan_rev_nx) #new
+    worksheet_template.merge_cells(range_string = sampling_plan_rev_temp)
     
     worksheet_irrs.merge_cells(range_string = number_inspection_lines_nx)
     worksheet_template.merge_cells(range_string = number_inspection_lines_temp)
+
+    worksheet_irrs.merge_cells(range_string = DCRTC_nx)     #new
+    worksheet_template.merge_cells(range_string = DCRTC_temp)
+
     
     # Clearing the template
     for row in range(start_row_irrs + 1, worksheet_template.max_row + 1):
@@ -256,7 +288,7 @@ def translate_irrs_button_logic():
                 # try: 
                 workbook_irrs, worksheet_irrs = open_workbook(Path(list_element))
                 worksheet_template = copy_to_correct_template(worksheet_irrs, worksheet_template)
-                worksheet_template = iterate_through_column(worksheet_template)
+                worksheet_template = iterate_through_column(worksheet_template) #turn me back on
                 workbook_template.save(path_to_translated_irrs)
                 workbook_template.close()
                 # except:
@@ -272,16 +304,26 @@ def translate_irrs_button_logic():
     list_irrs_path.delete(0,tk.END)
 
 
-def read_tabulated_data(path_to_workbook):
+def read_tabulated_data(path_to_tabulated):
     """Opens the tabulated spreadsheet"""
-    workbook = load_workbook(path_to_workbook)
-    worksheet = workbook.active
-    return workbook, worksheet
+    workbook_tabulated = load_workbook(path_to_tabulated)
+    worksheet_tabulated = workbook_tabulated.active
+    return workbook_tabulated, worksheet_tabulated
 
+mandatory_columns = ["DCRTC#", "Sampling Plan (IRRS) Name", "Product Description", "Product Number", "Sampling Plan Revision", "Product Revision"]
 
-def add_columns_to_tabulated_table(path_to_file):
-    workbook, worksheet = read_tabulated_data(Path(path_to_file))
-    return True
+def add_columns_to_tabulated_table(workbook_tabulated, worksheet_tabulated):
+    """Adds any missing mandatory columns to the tabulated data file"""
+    column_names = []
+    for col in range(1, worksheet_tabulated.max_column + 1):
+        column_names.append(worksheet_tabulated.cell(1, column = col).value)
+    columns_to_be_added = [element for element in mandatory_columns if element not in column_names]
+    counter = 0
+    for col in range(worksheet_tabulated.max_column + 1, worksheet_tabulated.max_column + len(columns_to_be_added) + 1):
+        worksheet_tabulated.cell(1, column = col).value = columns_to_be_added[counter]
+        print(columns_to_be_added[counter])
+        counter += 1
+    return worksheet_tabulated
 
 
 def is_tabulated_data(path_to_file):
@@ -293,14 +335,101 @@ def is_tabulated_data(path_to_file):
     else:
         return False
 
+
 def generate_tabulated_irrs():
     """Generates tabulated IRRSs"""
     for element_index, list_element in enumerate(list_irrs_path.get(0,tk.END)):
-        if is_tabulated_data(Path(list_element)):
-            button_generate_irrs["text"] = "Add Columns to Table"
-            
+        if (list_element.upper()).find("TABULATED DATA") != -1:
+            workbook_tabulated, worksheet_tabulated = read_tabulated_data(Path(list_element))
+            # write logic to check correct columns exist and that data has been added
+        else:
+            path_to_irrs_for_tabulation = list_element
+            workbook_irrs, worksheet_irrs = open_workbook(Path(path_to_irrs_for_tabulation))
+    
+        # worksheet_tabulated = add_columns_to_tabulated_table(workbook_tabulated, worksheet_tabulated)
+        # workbook_tabulated.save(Path(list_element))
+        # if is_tabulated_data(Path(list_element)):
+        #     button_generate_irrs["text"] = "Add Columns to Table"
+    # getting column names
+    column_names = []
+    for col in range(1, worksheet_tabulated.max_column + 1):
+        if (worksheet_tabulated.cell(1, column = col).value == "Sampling Plan (IRRS) Name") :
+            irrs_name_column_no = col
+        if (worksheet_tabulated.cell(1, column = col).value in mandatory_columns) or ((worksheet_tabulated.cell(1, column = col).value).find("DIM") != -1) :
+            column_names.append(worksheet_tabulated.cell(1, column = col).value) #checking which columns in the tabulated data table are mandatory or have the word DIM
+            # because only those need to be tabulated
+    # if I have column names then I can checka against the ones that should be translated, then have a an if statement that copies over the content
+    # acording to the cell type, for instance some need unmerging while ithers don't
+    
+    # define a loop to make many copies as there are rows in the tabulated table then
+    # define a loop to loop through all the DIMs
+    # check that there are as nany DIMs in the tabulated data as in the IRRs
+
+    #create an empty dictionary to add IRRS names and paths:
+    irrs_to_tabulate = {}
+
+    for dim_range in range(2, worksheet_tabulated.max_row + 1):
+        workbook_irrs, worksheet_irrs = open_workbook(Path(path_to_irrs_for_tabulation))
+        workbook_processing = workbook_irrs
+        worksheet_processing = worksheet_irrs
+        # the fisrt copy of an IRRS happens here
+        for dim_number in range(1, worksheet_tabulated.max_column + 1):
+            # this statement is kept at row 1 because this will be the projection of the headers
+            irrs_filename = worksheet_tabulated.cell(row = dim_range, column = irrs_name_column_no).value #this is getting the name that the tabulated IRRS should be saved as
+        ###########################################################################################################################################
+        # for dim_number in range(1, worksheet_tabulated.max_column + 1):
+        #     # this statement is kept at row 1 because this will be the projection of the headers
+        #     irrs_filename = worksheet_tabulated.cell(row = dim_range, column = irrs_name_column_no).value #this is getting the name that the tabulated IRRS should be saved as
+        #     if (worksheet_tabulated.cell(row = 1, column = dim_number).value in column_names):
+        #         header_value = str(worksheet_tabulated.cell(row = 1, column = dim_number).value)
+        #         cell_value = str(worksheet_tabulated.cell(row = dim_range, column = dim_number).value)
+        #         if (header_value.find("DIM") != -1):
+        #             print(dim_range, dim_number)
+        #             row_v, col_v = find_word_in_worksheet(worksheet_processing, header_value)
+        #             cell_to_process = worksheet_processing.cell(row = row_v, column = col_v).value
+        #             worksheet_processing.cell(row = row_v, column = col_v).value = cell_to_process.replace(header_value, cell_value)
+        ###########################################################################################################################################
+        path_to_irrs_for_tabulation = make_tabulated_outpute_name(path_to_irrs_for_tabulation, irrs_filename)
+        # print(path_to_irrs_for_tabulation)
+        #assigning values to dictionary
+        irrs_to_tabulate[dim_range] = path_to_irrs_for_tabulation
+
+        workbook_processing.save(path_to_irrs_for_tabulation)
+        workbook_processing.close()
+        # we need to repurpose the loop we had to repalce the DIMs such that the inputs are now the new IRRS files we created
+        # we may need to create a dictionay with the names and the paths and open them in order and then tabulate them in the same order as the loops
+                    
+        # now the file is saved with a number appended at the end
+    for key, irrs in irrs_to_tabulate.items():
+        for dim_range in range(key, key + 1):
+            workbook_tabulating, worksheet_tabulating = open_workbook(irrs)
+            for dim_number in range(1, worksheet_tabulated.max_column + 1):
+            # this statement is kept at row 1 because this will be the projection of the headers
+                irrs_filename = worksheet_tabulated.cell(row = dim_range, column = irrs_name_column_no).value #this is getting the name that the tabulated IRRS should be saved as
+                if (worksheet_tabulated.cell(row = 1, column = dim_number).value in column_names):
+                    header_value = str(worksheet_tabulated.cell(row = 1, column = dim_number).value)
+                    cell_value = str(worksheet_tabulated.cell(row = dim_range, column = dim_number).value)
+                    if (header_value.find("DIM") != -1):
+                        print(dim_range, dim_number)
+                        row_v, col_v = find_word_in_worksheet(worksheet_tabulating, header_value)
+                        cell_to_process = worksheet_tabulating.cell(row = row_v, column = col_v).value
+                        worksheet_tabulating.cell(row = row_v, column = col_v).value = cell_to_process.replace(header_value, cell_value)
+            workbook_tabulating.save(irrs)
+            workbook_tabulating.close()
+    print(irrs_to_tabulate)
     return
 
+
+def make_tabulated_outpute_name(path_to_irrs_for_tabulation, irrs_filename):
+    """Generate the output path for the tabulated IRRS with the same name and dimension"""
+    tabulated_irrs_filename = str(irrs_filename) + ".xlsx"
+    path_to_tabulated_irrs = Path(path_to_irrs_for_tabulation)
+    parent_path = path_to_tabulated_irrs.parent
+    path_to_irrs_for_tabulation = Path(str(parent_path) + "\\" + tabulated_irrs_filename)
+    return path_to_irrs_for_tabulation
+
+def copy_tabulated_to_irrs():
+    return worksheet_processed
 
 def add_paths_to_listbox(event):
     """Adds file paths to listbox and checks that no duplicates are added"""
@@ -326,7 +455,7 @@ def clear_list_button_logic():
 
 window = TkinterDnD.Tk()  # notice - use this instead of tk.Tk()
 
-window.title("Exactech IRRS Translator v 0.28")
+window.title("Exactech IRRS Translator v 0.30")
 icon_path = Path("J:\\Public\\Employee\\AYMEE.RODRIGUEZ\\IRRS translator program\\exactech.ico")
 if icon_path.is_file():
     window.iconbitmap(icon_path)
@@ -362,8 +491,8 @@ label_footer = tk.Label(text = "")
 label_footer.grid(row = 6, column = 0, pady = 10)
 
 # to build:
-# open terminal and navigate to C:\Users\aymee.rodriguez\irrs\Scripts
-# run: activate.bat
+# open terminal and navigate to C:\Users\aymee.rodriguez\irrs\Scripts by typing cd 
+# run: activate.bat - (irrs) should appear before working directory
 # replace irrs_translator.py with new one from VScode
 # the run: pyinstaller -F -w --icon=exactech.ico irrs_translator.py --additional-hooks-dir=.
 # open C:\Users\aymee.rodriguez\irrs\Scripts\dist and copy the irrs_translator.exe to the shared folder
@@ -400,11 +529,12 @@ window.mainloop()
     [X] Bigger box 
     [X] Able to add several IRRS to be translated at the same time
     [X] Make a list for the drag and drop box so that it is easier for the user to see
-    [] Add program icon
+    [X] Add program icon
     [X] Fix vertical bar
     [X] Find best size for the window
     [X] Add multiple files at once instead of dropping one by one
     [X] check if translation table exists, if not ask for new directory
     [] only let the user run the program if they are using the latest version
     [X] Add buttom to clear entry box
+    [] Clear second sheet
 """
